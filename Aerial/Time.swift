@@ -9,8 +9,18 @@
 import Foundation
 import CoreLocation
 
-class Time:NSObject, CLLocationManagerDelegate {
-    let locationManager = CLLocationManager()
+class Time:NSObject {
+    let manager:CLLocationManager
+    let lat:Double?
+    let long:Double?
+    let status:CLAuthorizationStatus
+    
+    init(man:CLLocationManager, status:CLAuthorizationStatus) {
+        manager = man
+        self.status = status
+        lat = (man.location?.coordinate.latitude)
+        long = (man.location?.coordinate.longitude)
+    }
     
     func radtodeg (x:Double) -> Double {
         return (x * 180) / M_PI
@@ -35,14 +45,14 @@ class Time:NSObject, CLLocationManagerDelegate {
     // returns the current Longitude: west of meridian is positive and east is negitive
     func currentLong() -> Double{
         if (CLLocationManager.authorizationStatus() == .Authorized){
-            return -1 * (locationManager.location?.coordinate.longitude)!
+            return -1 * long!
         }
         return 0.0
     }
     
     func currentLat() -> Double {
         if (CLLocationManager.authorizationStatus() == .Authorized){
-            return 1.0 * (locationManager.location?.coordinate.latitude)!
+            return 1.0 * lat!
         }
         return 0.0
     }

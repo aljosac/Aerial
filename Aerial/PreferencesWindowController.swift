@@ -11,6 +11,7 @@ import AVKit
 import AVFoundation
 import ScreenSaver
 
+
 class TimeOfDay {
     let title:String;
     var videos:[AerialVideo] = [AerialVideo]()
@@ -48,6 +49,8 @@ class City {
     @IBOutlet var playerView:AVPlayerView!
     @IBOutlet var differentAerialCheckbox:NSButton!
     @IBOutlet var projectPageLink:NSButton!
+    
+    
     
     var player:AVPlayer = AVPlayer()
     let defaults:NSUserDefaults = ScreenSaverDefaults(forModuleWithName: "com.JohnCoates.Aerial")! as ScreenSaverDefaults

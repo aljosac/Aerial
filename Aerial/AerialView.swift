@@ -10,6 +10,7 @@ import Foundation
 import ScreenSaver
 import AVFoundation
 import AVKit
+import CoreLocation
 
 typealias manifestLoadCallback = ([AerialVideo]) -> (Void);
 
@@ -37,8 +38,11 @@ extension MutableCollectionType where Index == Int {
     }
 }
 
-class ManifestLoader {
+class ManifestLoader:NSObject, CLLocationManagerDelegate {
     static let instance:ManifestLoader = ManifestLoader();
+    
+    var manager:CLLocationManager?
+    let locStatus:CLAuthorizationStatus
     
     let defaults:NSUserDefaults = ScreenSaverDefaults(forModuleWithName: "com.JohnCoates.Aerial")! as ScreenSaverDefaults
     var callbacks = [manifestLoadCallback]();
@@ -74,7 +78,43 @@ class ManifestLoader {
         return shuffled.first;
     }
     
-    init() {
+    
+    func timeVideo() -> AerialVideo? {
+        let shuffled = loadedManifest.shuffle()
+        
+        let day = Time(man: manager!, status: locStatus).isDay()
+        
+        for video in shuffled {
+            let possible = defaults.objectForKey(video.id)
+            
+            if let possible = possible as? NSNumber {
+                if possible.boolValue == false{
+                    continue
+                }
+            }
+            if day {
+                if (video.timeOfDay == "day") {
+                    return video
+                }
+                continue
+            }
+            if (video.timeOfDay == "night"){
+                return video
+            }
+            continue
+        }
+        
+        return shuffled.first
+    }
+    
+    override init() {
+        super.init()
+        
+        // load location information
+        manager = CLLocationManager()
+        manager!.delegate = self
+        locStatus = manager.authorizationStatus()
+        
         // start loading right away!
         let completionHandler = { (data:NSData?, response:NSURLResponse?, error:NSError?) -> Void in
             guard let data = data else {
@@ -132,6 +172,7 @@ class ManifestLoader {
         let url = NSURL(string: "http://a1.phobos.apple.com/us/r1000/000/Features/atv/AutumnResources/videos/entries.json");
         let task = NSURLSession.sharedSession().dataTaskWithURL(url!, completionHandler:completionHandler);
         task.resume();
+        
     }
 }
 
