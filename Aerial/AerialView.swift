@@ -14,6 +14,9 @@ import CoreLocation
 
 typealias manifestLoadCallback = ([AerialVideo]) -> (Void);
 
+
+let manager = CLLocationManager()
+
 // shuffling thanks to Nate Cook http://stackoverflow.com/questions/24026510/how-do-i-shuffle-an-array-in-swift
 extension CollectionType {
     /// Return a copy of `self` with its elements shuffled
@@ -41,13 +44,14 @@ extension MutableCollectionType where Index == Int {
 class ManifestLoader:NSObject, CLLocationManagerDelegate {
     static let instance:ManifestLoader = ManifestLoader();
     
-    var manager:CLLocationManager?
-    let locStatus:CLAuthorizationStatus
-    
     let defaults:NSUserDefaults = ScreenSaverDefaults(forModuleWithName: "com.JohnCoates.Aerial")! as ScreenSaverDefaults
     var callbacks = [manifestLoadCallback]();
     var loadedManifest = [AerialVideo]();
     var playedVideos = [AerialVideo]();
+    
+    
+    var latitude:Double = 0.0
+    var longitude:Double = 0.0
     
     func addCallback(callback:manifestLoadCallback) {
         if (loadedManifest.count > 0) {
@@ -82,8 +86,8 @@ class ManifestLoader:NSObject, CLLocationManagerDelegate {
     func timeVideo() -> AerialVideo? {
         let shuffled = loadedManifest.shuffle()
         
-        let day = Time(man: manager!, status: locStatus).isDay()
-        
+        let day = Time(location: (latitude,longitude)).isDay()
+        NSLog("\(day)")
         for video in shuffled {
             let possible = defaults.objectForKey(video.id)
             
@@ -111,10 +115,8 @@ class ManifestLoader:NSObject, CLLocationManagerDelegate {
         super.init()
         
         // load location information
-        manager = CLLocationManager()
-        manager!.delegate = self
-        locStatus = manager.authorizationStatus()
-        
+        manager.delegate = self
+        manager.startUpdatingLocation()
         // start loading right away!
         let completionHandler = { (data:NSData?, response:NSURLResponse?, error:NSError?) -> Void in
             guard let data = data else {
@@ -173,6 +175,14 @@ class ManifestLoader:NSObject, CLLocationManagerDelegate {
         let task = NSURLSession.sharedSession().dataTaskWithURL(url!, completionHandler:completionHandler);
         task.resume();
         
+        
+    }
+    func locationManager(manager: CLLocationManager, didUpdateLocations locations: [AnyObject]) {
+        if let location = locations.last as? CLLocation{
+            self.latitude = location.coordinate.latitude
+            self.longitude = location.coordinate.longitude
+            NSLog("\(latitude), \(longitude)")
+        }
     }
 }
 
@@ -217,7 +227,6 @@ class ManifestLoader:NSObject, CLLocationManagerDelegate {
     
     override init?(frame: NSRect, isPreview: Bool) {
         super.init(frame: frame, isPreview: isPreview)
-        
         self.animationTimeInterval = 1.0 / 30.0
         setup()
     }
@@ -389,9 +398,17 @@ public let AVPlayerItemFailedToPlayToEndTimeErrorKey: String // NSError
     }
     
     func playNextVideo(player:AVPlayer) {
-        let randomVideo = ManifestLoader.instance.randomVideo();
         
-        guard let video = randomVideo else {
+        var nextVideo:AerialVideo?
+        
+        if (CLLocationManager.authorizationStatus() == .Authorized){
+            nextVideo = ManifestLoader.instance.timeVideo()
+        } else {
+            nextVideo = ManifestLoader.instance.randomVideo();
+        }
+        
+        
+        guard let video = nextVideo else {
             NSLog("error grabbing random video!");
             return;
         }

@@ -7,19 +7,14 @@
 //
 
 import Foundation
-import CoreLocation
 
 class Time:NSObject {
-    let manager:CLLocationManager
     let lat:Double?
     let long:Double?
-    let status:CLAuthorizationStatus
     
-    init(man:CLLocationManager, status:CLAuthorizationStatus) {
-        manager = man
-        self.status = status
-        lat = (man.location?.coordinate.latitude)
-        long = (man.location?.coordinate.longitude)
+    init(location:(Double,Double)) {
+        lat = location.0
+        long = location.1
     }
     
     func radtodeg (x:Double) -> Double {
@@ -42,23 +37,8 @@ class Time:NSObject {
         return Int(currentDate - 2451545.0 + 0.0008)
     }
     
-    // returns the current Longitude: west of meridian is positive and east is negitive
-    func currentLong() -> Double{
-        if (CLLocationManager.authorizationStatus() == .Authorized){
-            return -1 * long!
-        }
-        return 0.0
-    }
-    
-    func currentLat() -> Double {
-        if (CLLocationManager.authorizationStatus() == .Authorized){
-            return 1.0 * lat!
-        }
-        return 0.0
-    }
-    
     func meanSolarNoon() -> Double {
-        return (currentLong()/360) + Double(currentJulianDay())
+        return (long!/360) + Double(currentJulianDay())
     }
     
     // return value is in Degrees
@@ -86,8 +66,7 @@ class Time:NSObject {
     }
     
     func hourAngle() -> Double {
-        let lat = currentLat()
-        let a = (sin(degtorad(-0.83)) - sin(lat)*sin(declinationOfSun()))/cos(lat)*cos(declinationOfSun())
+        let a = (sin(degtorad(-0.83)) - sin(lat!)*sin(declinationOfSun()))/cos(lat!)*cos(declinationOfSun())
         return acos(a)
     }
     
